@@ -1,15 +1,13 @@
-const express = require('express')
-const fs = require('fs')
-const { Server: HttpServer } = require('http')
-const { Server: IOServer } = require('socket.io')
+import express from 'express'
+import fs from 'fs'
+import {  Server as HttpServer  } from 'http'
+import {  Server as IOServer } from 'socket.io'
 //Base de datos
-const {options} = require('../public/js/mySQL.js')
-const knex = require("knex")(options)
-const knex2 = require("knex")({
-    client: 'sqlite3',
-    connection: {filename: "../db/ecommerce.sqlite"},
-    useNullAsDefault: true
-})
+import {knex1} from '../public/js/crearTabla.js'
+import {knex2} from '../public/js/crearTabla.js'
+import { cargarMensajes, guardarMensaje } from './contenedores/contenedorMensajesnoSQL.js'
+import { verProductos,nuevoProducto } from './contenedores/contenedorProductosFaker.js'
+import router from './router/routerProductos.js'
 
 const app = express()
 const httpServer = new HttpServer(app)
@@ -18,6 +16,7 @@ const io = new IOServer(httpServer)
 const PORT = 8080
 
 app.use(express.static("../public"))
+app.use('/api/productos-test',router)
 
 // let productos = []; //Cambiar persistencia a MariaDB / MySQL
 // let mensajes = [];  //Cambiar persistencia a SQLite3
@@ -30,70 +29,53 @@ server.on("error", error => console.log("Error en servidor"+error))
 io.on('connection', (socket)=>{
 
     console.log(`Se conecto el usuario: ${socket.id}`)
-    
-    function cargarMensajes(tabla){
-        knex2.from(`${tabla}`).select("*")
-            .then((rows)=>{
-                let mensajes = []
-                for (row of rows){
-                    mensajes.push(row)
-                }
-                socket.emit("mensajes",mensajes)
-            })
-        
+//-----------------------------------------Mensajes
+    async function loadmsg(){
+        console.log("cargando...")
+        const mensajes = await cargarMensajes()
+        socket.emit("mensajes",mensajes)
     }
-    function cargarMensajes2(tabla){
-        knex2.from(`${tabla}`).select("*")
-            .then((rows)=>{
-                let mensajes = []
-                for (row of rows){
-                    mensajes.push(row)
-                }
-                io.sockets.emit("mensajes",mensajes)
-            })
-        
-    }
-    cargarMensajes("mensajes")
-    //setTimeout(()=>socket.emit("mensajes",mensajes),1000)
 
-    knex.from("productos").select("*")
-    .then((rows)=>{
-        let productos = []
-        for (const row of rows){
-            productos.push(row)
-        }
-        socket.emit("productos", productos)
+    async function loadmsg2(){
+        const mensajes = await cargarMensajes()
+        console.log("mensajes actualizados")
+        io.sockets.emit("mensajes",mensajes)
+    }
+    //Carga inicial 
+    loadmsg()
+    //Agregar nuevo mensajes y persistir
+    socket.on("nuevoMensaje",async msg =>{
+        console.log("llego mensaje nuevo al servidor",msg)
+        await guardarMensaje(msg)
+        await loadmsg2()
+            
     })
-    .catch((err)=> console.log(err)) 
+//-------------------------------------------Productos
 
+
+    async function loadpr(){
+        const productos = await verProductos()
+        return productos
+    }
     
-    
+    //Carga incial de productos
+    async function cargainicial(){
+        const productos = await loadpr()
+        socket.emit("productos", productos)
+    }
+    async function cargaconnuevoProd(){
+        const productos = await loadpr()
+        io.sockets.emit("productos", productos)
+    }
+    cargainicial()
 
     socket.on("nuevoProducto",producto =>{
-        knex('productos').insert(producto)
-        .then(()=> console.log("Se cargo el producto en la base de datos"))
-        .catch((err)=> console.log(err))
-
-        knex.from("productos").select("*")
-        .then((rows)=>{
-            let productos = []
-            for (const row of rows){
-                productos.push(row)
-            }
-            io.sockets.emit("productos", productos)
-        })
-        .catch((err)=> console.log(err))       
+        nuevoProducto(producto)
+        cargaconnuevoProd()
+              
     })
 
-    socket.on("nuevoMensaje",msg =>{
-        msg.fecha = new Date().toLocaleString();
-        console.log(msg);
-        knex2('mensajes').insert(msg)
-            .then(()=>{
-                console.log("mensaje guardado")
-            })
-            cargarMensajes2("mensajes")
-    })
+
 })
 
 //////////////////////////--- Base de datos

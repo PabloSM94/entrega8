@@ -1,15 +1,16 @@
 //Crear tabla en MySQL para productos
-const {options} = require('./mySQL')
-const knex = require("knex")(options)
-
+import {options} from './mySQL.js'
+import knex from "knex"
 //Crear tabla en MySQL para mensajes
-const {optionsSQLite} = require('./mySQL')
-const knex2 = require("knex")(optionsSQLite)
+import {optionsSQLite} from './mySQL.js'
 
-knex.schema.hasTable("productos")
+const knex1 = knex(options)
+const knex2 = knex(optionsSQLite)
+
+knex1.schema.hasTable("productos")
     .then(exists => {
         if (!exists) {
-            knex.schema.createTable("productos", table =>{
+            knex1.schema.createTable("productos", table =>{
                 table.increments("id")
                 table.string("title")
                 table.integer("price")
@@ -21,7 +22,7 @@ knex.schema.hasTable("productos")
         }
     })
     .catch( (err) => {console.log(err); throw err })
-    .finally(()=> knex.destroy())
+    
 
 knex2.schema.hasTable("mensajes")
     .then(exists =>{
@@ -37,4 +38,6 @@ knex2.schema.hasTable("mensajes")
         }
     })
     .catch( (err) => {console.log(err); throw err })
-    .finally(()=> knex2.destroy())
+
+
+export {knex1,knex2}

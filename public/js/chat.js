@@ -1,6 +1,11 @@
 //ejecución de handlebars
 const camposChat = [
-    {nombreCampo: "Correo Electronico", type:"email", name:"email"},
+    {nombreCampo: "email", type:"email", name:"email"},
+    {nombreCampo: "nombre", type:"text", name:"nombre"},
+    {nombreCampo: "apellido", type:"text", name:"apellido"},
+    {nombreCampo: "edad", type:"number", name:"edad"},
+    {nombreCampo: "alias", type:"text" ,name:"alias"},
+    {nombreCampo: "avatar", type:"text" ,name:"avatar"},
     {nombreCampo: "Mensaje", type:"text", name:"msg"},
 ]
 

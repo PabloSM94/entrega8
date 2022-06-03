@@ -22,3 +22,4 @@ function mostrarProductos(input){
         productos: input
     })   
 }
+
